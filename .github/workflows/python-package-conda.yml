@@ -1,34 +1,43 @@
 name: Python Package using Conda
 
-on: [push]
+# Trigger the workflow on push or pull request to the main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build-linux:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda env update --file environment.yml --name base
-    - name: Lint with flake8
-      run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        conda install pytest
-        pytest
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Conda
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: myenv  # Name your Conda environment
+          python-version: 3.8  # Specify your Python version here
+          environment-file: environment.yml  # Reference your Conda environment file if you have one
+          auto-update-conda: true
+          auto-activate-base: false
+
+      # Step 3: Install dependencies from environment.yml or requirements.txt
+      - name: Install dependencies
+        run: |
+          conda env update -f environment.yml || conda install --file requirements.txt
+          conda activate myenv
+
+      # Step 4: Run tests (or any other commands/scripts)
+      - name: Run tests
+        run: |
+          conda activate myenv
+          pytest  # Run your tests; adjust as needed
+
+      # Optional: Deactivate Conda environment
+      - name: Deactivate Conda environment
+        run: conda deactivate
